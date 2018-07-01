@@ -207,11 +207,11 @@ class ReverseProxyRequest(Request):
         request.
         """
         self.requestHeaders.setRawHeaders(b"host",
-                                          [self.factory.host.encode('ascii')])
+                                          [self.channel.factory.host])
         clientFactory = self.proxyClientFactoryClass(
             self.method, self.uri, self.clientproto, self.getAllHeaders(),
             self.content.read(), self)
-        self.reactor.connectTCP(self.factory.host, self.factory.port,
+        self.reactor.connectTCP(self.channel.factory.host, self.channel.factory.port,
                                 clientFactory)
 
 
@@ -220,7 +220,7 @@ class ReverseProxy(HTTPChannel):
     """
     Implements a simple reverse proxy.
 
-    For details of usage, see the file examples/reverse-proxy.py.
+    For details of usage, see the file examples/transparent-proxy.py.
     """
 
     requestFactory = ReverseProxyRequest
@@ -289,7 +289,7 @@ class ReverseProxyResource(Resource):
             host = self.host
         else:
             host = self.host + u":" + str(self.port)
-        request.requestHeaders.setRawHeaders(b"host", [host.encode('ascii')])
+        request.requestHeaders.setRawHeaders(b"host", [host])
         request.content.seek(0, 0)
         qs = urllib_parse.urlparse(request.uri)[4]
         if qs:
