@@ -13,6 +13,7 @@ from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.proxy import ReverseProxyResource, ProxyClientFactory
 from twisted.web.proxy import ProxyClient, ProxyRequest, ReverseProxyRequest
+from twisted.web.proxy import ReverseProxyFactory
 from twisted.web.test.test_web import DummyRequest
 
 
@@ -562,3 +563,42 @@ class ReverseProxyRequestTests(TestCase):
         # Check the factory passed to the connect, and its headers
         self.assertIsInstance(factory, ProxyClientFactory)
         self.assertEqual(factory.headers, {b'host': b'example.com'})
+
+
+
+class ReverseProxyFactoryTests(TestCase):
+    """
+    Tests for L{ReverseProxyFactory}.
+    """
+
+    def test_get_index(self):
+        reactor = MemoryReactor()
+        factory = ReverseProxyFactory(u"example.com", 80, reactor)
+        channel = factory.buildProtocol(None)
+        channel.makeConnection(StringTransportWithDisconnection())
+        self.addCleanup(channel.connectionLost, None)
+        channel.dataReceived(
+            b'\r\n'.join([
+                b'GET /index.html HTTP/1.1',
+                b'Host: proxy.url',
+                b'X-Custom-Header: AAA',
+                b'',
+                b'',
+            ])
+        )
+
+        [(host, port, factory, _timeout, _bind_addr)] = reactor.tcpClients
+
+        self.assertEqual(host, u"example.com")
+        self.assertEqual(port, 80)
+        self.assertIsInstance(factory, ProxyClientFactory)
+        self.assertEqual(factory.command, b'GET')
+        self.assertEqual(factory.rest, b'/index.html')
+        self.assertEqual(factory.version, b'HTTP/1.1')
+        self.assertEqual(
+            factory.headers, {
+                b'host': b'example.com',
+                b'x-custom-header': b'AAA',
+            }
+        )
+        self.assertEqual(factory.data, b'')

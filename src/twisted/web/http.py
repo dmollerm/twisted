@@ -2056,10 +2056,7 @@ class HTTPChannel(basic.LineReceiver, policies.TimeoutMixin):
                 return
 
             # create a new Request object
-            if INonQueuedRequestFactory.providedBy(self.requestFactory):
-                request = self.requestFactory(self)
-            else:
-                request = self.requestFactory(self, len(self.requests))
+            request = self.buildRequest()
             self.requests.append(request)
 
             self.__first_line = 0
@@ -2107,6 +2104,14 @@ class HTTPChannel(basic.LineReceiver, policies.TimeoutMixin):
     def _finishRequestBody(self, data):
         self.allContentReceived()
         self._dataBuffer.append(data)
+
+
+    def buildRequest(self):
+        if INonQueuedRequestFactory.providedBy(self.requestFactory):
+            request = self.requestFactory(self)
+        else:
+            request = self.requestFactory(self, len(self.requests))
+        return request
 
 
     def headerReceived(self, line):

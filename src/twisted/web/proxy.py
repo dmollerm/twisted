@@ -225,6 +225,16 @@ class ReverseProxy(HTTPChannel):
 
     requestFactory = ReverseProxyRequest
 
+    def __init__(self, reactor=reactor):
+        HTTPChannel.__init__(self)
+        self.reactor = reactor
+
+
+    def buildRequest(self):
+        request = HTTPChannel.buildRequest(self)
+        request.reactor = self.reactor
+        return request
+
 
 
 class ReverseProxyFactory(ServerFactory):
@@ -233,12 +243,19 @@ class ReverseProxyFactory(ServerFactory):
     """
     protocol = ReverseProxy
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, reactor=reactor):
         self.host = host
         self.port = port
+        self.reactor = reactor
 
     def log(self, *args, **kwargs):
         pass
+
+
+    def buildProtocol(self, addr):
+        p = ServerFactory.buildProtocol(self, addr)
+        p.reactor = self.reactor
+        return p
 
 
 
